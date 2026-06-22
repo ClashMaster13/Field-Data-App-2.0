@@ -179,17 +179,28 @@ function handleFileUpload(event) {
             const lines = e.target.result.split(/\r?\n/).filter(line => line.trim() !== '');
             if (lines.length < 2) throw new Error("File empty or missing headers.");
 
-            // Bulletproof parser to handle commas inside quotes
+            // Bulletproof RFC 4180 CSV parser supporting escaped quotes
             const parseLine = (str) => {
-                let result = [], cell = '', inQuotes = false;
+                let result = [];
+                let cell = '';
+                let inQuotes = false;
                 for (let i = 0; i < str.length; i++) {
-                    let char = str[i];
-                    if (char === '"') inQuotes = !inQuotes;
-                    else if (char === ',' && !inQuotes) { result.push(cell.trim()); cell = ''; }
-                    else cell += char;
+                    if (str[i] === '"') {
+                        if (inQuotes && str[i + 1] === '"') {
+                            cell += '"'; // Handle escaped quotes ("")
+                            i++;
+                        } else {
+                            inQuotes = !inQuotes; // Toggle quote state
+                        }
+                    } else if (str[i] === ',' && !inQuotes) {
+                        result.push(cell.trim());
+                        cell = '';
+                    } else {
+                        cell += str[i];
+                    }
                 }
                 result.push(cell.trim());
-                return result.map(c => c.replace(/^"|"$/g, '').trim());
+                return result;
             };
 
             tempHeaders = parseLine(lines[0]);
