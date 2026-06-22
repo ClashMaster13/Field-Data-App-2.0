@@ -6,7 +6,26 @@ window.onerror = function(msg, url, line) { alert("ERROR: " + msg + "\nLine: " +
 
 // Registers the offline cache (Service Worker) so the app works without internet
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+        reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    if (confirm("✨ A new app update is available! Tap OK to apply it instantly without losing any data.")) {
+                        newWorker.postMessage('SKIP_WAITING');
+                    }
+                }
+            });
+        });
+    }).catch(err => console.error(err));
+
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+        }
+    });
 }
 
 // ============================================================================

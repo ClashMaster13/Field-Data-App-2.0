@@ -1,4 +1,4 @@
-const CACHE_NAME = 'field-scorer-v5';
+const CACHE_NAME = 'field-scorer-v6';
 const ASSETS = [
     './',
     './index.html',
@@ -9,12 +9,17 @@ const ASSETS = [
 
 // Install the Service Worker and Cache the files
 self.addEventListener('install', event => {
-    self.skipWaiting(); // Force the waiting service worker to become the active service worker
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache => {
             return cache.addAll(ASSETS);
         })
     );
+});
+
+self.addEventListener('message', event => {
+    if (event.data === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
 });
 
 // Purge old caches when a new service worker takes over
