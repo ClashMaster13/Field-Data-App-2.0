@@ -313,6 +313,7 @@ function addArrayInput(plotId, trait) {
     scores[plotId][trait] = arr;
     saveWorkspaceData();
     renderPlotView(); // Refresh screen
+    renderTraitView(); // Refresh trait view
 }
 
 // Deletes a specific observation box
@@ -322,6 +323,7 @@ function removeArrayScore(plotId, trait, index) {
     scores[plotId][trait] = arr;
     saveWorkspaceData();
     renderPlotView(); // Refresh screen
+    renderTraitView(); // Refresh trait view
 }
 
 // ============================================================================
@@ -457,10 +459,13 @@ function renderTraitView() {
         
         // For trait view, we show all current observations side-by-side
         let inputsStr = vals.map((v, idx) => `
-            <input type="number" step="any" value="${v}" 
+            <input type="number" step="any" value="${escapeHTML(v)}" 
                    oninput="updateArrayScore('${safePlotId}', '${activeTrait}', ${idx}, this.value)" 
-                   placeholder="P${idx+1}" style="width: 60px; display:inline-block; margin-right:5px; padding:5px;">
+                   placeholder="P${idx+1}" style="width: 60px; display:inline-block; margin-right:5px; padding:5px; margin-bottom: 5px;">
         `).join('');
+        
+        // Add a "+" button to allow sub-sampling directly from the Trait view
+        inputsStr += `<button onclick="addArrayInput('${safePlotId}', '${activeTrait}')" style="width: 32px; padding: 5px; background: #007bff; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; display: inline-block; margin-bottom: 5px; vertical-align: top;">+</button>`;
         
         html += `
             <div class="trait-row" style="background: #fff; padding: 12px; margin-bottom: 8px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
