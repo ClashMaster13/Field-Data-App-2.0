@@ -13,6 +13,8 @@ export default defineConfig({
         short_name: 'Field Data App',
         description: 'Offline-first field data collection app',
         theme_color: '#ffffff',
+        background_color: '#ffffff',
+        display: 'standalone',
         icons: [
           {
             src: 'pwa-192x192.png',
