@@ -1,56 +1,16 @@
-Author: Sudip Kundu
+# React + Vite
 
-🌾 Offline Field Data App
-I built this fully offline Progressive Web App (PWA) to solve a daily frustration in my breeding programs: collecting reliable field data without an internet connection.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-I was tired of dealing with soggy paper field books, messy data transcription, and heavy software that freezes when it loses signal. I needed a lightweight, flexible tool that works flawlessly in remote locations, allows for quick sub-sampling of traits, and feeds my raw data directly into my R and Python analytics pipelines.
+Currently, two official plugins are available:
 
-✨ Why I Built This (Core Features)
-📡 100% Offline-First: Powered by Service Workers and IndexedDB. I can stand in the middle of a trial field with zero bars of service, and the app won't miss a beat.
-📂 Dynamic Workspaces: I can snap between different projects (like a Wheat MLT or a Mustard F4 trial) instantly. Each workspace gets its own isolated database.
-🗺️ Flexible Trial Mapping: I didn't want to force a specific Excel template. You just upload your existing CSV trial map, and the app dynamically aligns your Plot, Genotype, and Replication columns.
-🌱 Sub-Sample Engine: We rarely measure just one plant per plot. I built a dynamic sub-sampling tool so I can easily record 3, 5, or 10 observations for a single trait, keeping the raw data preserved for intra-plot variance and heritability calculations.
-🚨 Real-Time QC: A built-in Z-Score scanner catches "fat-finger" typos while I'm still standing in front of the plot, saving me hours of data-cleaning later.
-📸 Offline Media Capture: I can snap photos of morphological anomalies or disease symptoms right in the app. They safely sit in the tablet's browser memory until I get back to Wi-Fi.
-☁️ Cloud Sync: One tap pushes all my data and decoded images directly to my Google Drive and Google Sheets.
-🧬 The "Data Splitter" Analytics Pipeline
-When dealing with field data, there is always a conflict between wanting a clean spreadsheet for quick viewing and needing the raw, nested sub-samples for serious statistical modeling.
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-To solve this, I wrote a custom Google Apps Script backend that acts as an intelligent data splitter. When I hit sync:
+## React Compiler
 
-Mean Calculation: It calculates the true mean of my plot sub-samples and drops it into the primary trait column for easy reading.
-Variance Preservation: It dynamically generates hidden "Raw" columns at the far right of the sheet, preserving every individual plant measurement.
-Image Routing: It decodes the Base64 image strings, saves the actual JPEGs to a Google Drive folder, and drops a clickable link directly into the plot's row.
-The result is a Google Sheet that is instantly ready to be pulled directly into tidyverse or pandas for GCA matrices or ANOVA.
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-🏗️ Tech Stack
-Frontend: Vanilla HTML5, CSS3, JavaScript (ES6+). No heavy frameworks.
-Local Storage: IndexedDB to handle massive trial datasets and Base64 images natively.
-Backend: Serverless Google Apps Script (GAS) acting as a REST API.
-Storage: Google Sheets (Relational Data) & Google Drive (Images).
-🚀 How to Set It Up
-If you want to use this for your own trials, here is how to deploy it:
+## Expanding the ESLint configuration
 
-1. Frontend Deployment (GitHub Pages)
-Fork or clone this repository so index.html, app.js, sw.js, and manifest.json are in your root directory.
-Go to Settings > Pages in your repo.
-Set the Source to Deploy from a branch and select main.
-Open the live URL on your tablet or phone and select "Add to Home Screen" to install it as an offline app.
-2. Backend Setup (Google Apps Script)
-To make the ☁️ Sync to Cloud button work, you need to set up the router:
-
-Create a folder in your Google Drive (e.g., Field App Photos) and copy the Folder ID from the URL.
-Create a blank Google Sheet.
-Click Extensions > Apps Script.
-Paste the backend code (provided in the deployment steps of this project).
-Replace PASTE_YOUR_FOLDER_ID_HERE with your actual Drive Folder ID.
-Click Deploy > New deployment.
-Type: Web app
-Execute as: Me
-Who has access: Anyone
-Copy the resulting Web App URL.
-Back in this code repository, open app.js, locate the syncToCloud() function, and paste your URL into the GAS_URL variable.
-Commit the change, bump your CACHE_NAME version in sw.js, and refresh the app on your device!
-Author: Sudip Kundu
-
-Copyright (c) 2026 [Sudip Kundu]. All rights reserved.
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.

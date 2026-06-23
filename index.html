@@ -1,142 +1,15 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Enterprise Field Data App</title>
-    <link rel="manifest" href="./manifest.json">
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f4f4f9; margin: 0; padding: 10px; }
-        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px; }
-        h2, h3 { margin-top: 0; color: #333; }
-        
-        /* Tabs */
-        .tab-bar { display: flex; overflow-x: auto; background: #333; border-radius: 8px; margin-bottom: 15px; }
-        .tab-btn { flex: 1; padding: 12px; background: none; border: none; color: white; cursor: pointer; font-weight: bold; white-space: nowrap; }
-        .tab-btn.active { background: #28a745; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        
-        /* Forms & Inputs */
-        label { font-weight: bold; display: block; margin-top: 10px; font-size: 14px; color: #555; }
-        input, select { width: 100%; padding: 10px; margin-top: 5px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; margin-top: 15px; cursor: pointer; }
-        .btn-success { background: #28a745; }
-        .btn-danger { background: #dc3545; }
-        
-        /* Layout Grids */
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .plot-header { background: #e9ecef; padding: 10px; border-radius: 5px; margin-bottom: 15px; }
-        
-        /* Trait Table List */
-        .trait-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
-        .trait-row input { width: 50%; margin-top: 0; }
-        
-        /* QC Alerts */
-        .qc-alert { background: #fff3cd; color: #856404; padding: 10px; border-left: 4px solid #ffeeba; margin-top: 10px; }
-        .qc-danger { background: #f8d7da; color: #721c24; border-left: 4px solid #f5c6cb; }
-    </style>
-</head>
-<body>
-
-    <div class="tab-bar">
-        <button class="tab-btn active" onclick="switchTab('tab-setup')">⚙️ Setup</button>
-        <button class="tab-btn" onclick="switchTab('tab-plot')">📍 By Plot</button>
-        <button class="tab-btn" onclick="switchTab('tab-trait')">📏 By Trait</button>
-        <button class="tab-btn" onclick="switchTab('tab-qc')">🚨 QC & Export</button>
-    </div>
-
-    <div id="tab-setup" class="tab-content active card">
-        <div style="background: #e8f4f8; border: 1px solid #b6d4fe; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <h3 style="margin-top:0; color: #084298;">📂 Project Workspace</h3>
-            <p style="font-size:12px; color:#555;">Switch between crops. Powered by IndexedDB for high-capacity storage.</p>
-            
-            <label>Active Workspace:</label>
-            <select id="workspaceSelect" onchange="changeWorkspace()" style="font-weight: bold; color: #084298; margin-bottom: 10px;"></select>
-            
-            <div class="grid-2" style="border-top: 1px dashed #b6d4fe; padding-top: 10px; margin-top: 5px;">
-                <input type="text" id="newWorkspaceName" placeholder="e.g., Mustard 2026">
-                <button class="btn-success" onclick="addWorkspace()" style="margin-top: 5px;">+ Create Workspace</button>
-            </div>
-        </div>
-
-        <h2>1. Upload Trial Map (CSV)</h2>
-        <input type="file" id="csvFile" accept=".csv" onchange="handleFileUpload(event)">
-        <p id="uploadStatus">No trial loaded.</p>
-        
-        <div id="mappingSection" style="display:none; background:#e9ecef; padding:15px; border-radius:5px; margin-top:15px; border: 1px solid #ccc;">
-            <h3 style="margin-top:0;">Map Your Columns</h3>
-            <div class="grid-2">
-                <div><label>Plot Number (Required)</label><select id="mapPlot"></select></div>
-                <div><label>Trial Name</label><select id="mapTrial"></select></div>
-                <div><label>Genotype / Line</label><select id="mapGeno"></select></div>
-                <div><label>Replication</label><select id="mapRep"></select></div>
-                <div><label>Location</label><select id="mapLoc"></select></div>
-            </div>
-            <button class="btn-success" onclick="confirmMapping()">💾 Confirm Mapping & Load Trial</button>
-        </div>
-
-        <button class="btn-danger" style="margin-top: 15px;" onclick="clearDatabase()">🗑️ Wipe CURRENT Workspace</button>
-        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
-
-        <h2>2. Define Traits</h2>
-        <div class="grid-2">
-            <input type="text" id="newTraitName" placeholder="e.g., Tillers">
-            <button class="btn-success" onclick="addTrait()" style="margin-top: 5px;">+ Add Trait</button>
-        </div>
-        <ul id="traitList" style="padding-left: 20px; color: #555;"></ul>
-    </div>
-
-    <div id="tab-plot" class="tab-content card">
-        <div class="grid-2">
-            <input type="text" id="searchPlot" placeholder="Search Plot or Genotype...">
-            <button onclick="jumpTo()" style="margin-top: 5px;">🔍 Jump</button>
-        </div>
-        
-        <div class="plot-header" id="plotMetaCard">
-            <p>Please upload a trial map first.</p>
-        </div>
-
-        <div id="plotInputs">
-            </div>
-
-        <div class="grid-2" style="margin-top: 20px;">
-            <button onclick="navigatePlot(-1)">⬅️ Previous Plot</button>
-            <button onclick="navigatePlot(1)">Next Plot ➡️</button>
-        </div>
-    </div>
-
-    <div id="tab-trait" class="tab-content card">
-        <label>Select Trait to Score:</label>
-        <select id="traitSelector" onchange="renderTraitView()"></select>
-        <div id="traitListView" style="margin-top: 15px;"></div>
-    </div>
-
-    <div id="tab-qc" class="tab-content card">
-        <h2>Outlier Analysis</h2>
-        <div style="margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">
-            <label style="margin-top:0;">Z-Score Threshold (Stringency):</label>
-            <select id="qcThreshold">
-                <option value="2.0">Medium (Z > 2.0)</option>
-                <option value="2.5">Strict (Z > 2.5)</option>
-                <option value="3.0" selected>Very Strict (Z > 3.0)</option>
-            </select>
-        </div>
-        <button class="btn-success" onclick="runQC()">🔎 Scan for Outliers</button>
-        <div id="qcResults" style="margin-top: 15px;"></div>
-
-        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
-        
-        <h2>Export Data</h2>
-        <button class="btn-success" style="background:#007bff;" onclick="exportData()">📥 Download Final CSV</button>
-
-        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
-
-        <h2>Cloud Sync</h2>
-        <p style="font-size: 13px; color: #666;">Push local data to central server.</p>
-        <button id="syncBtn" class="btn-success" style="background:#17a2b8;" onclick="syncToCloud()">☁️ Sync to Cloud</button>
-    </div>
-
-    <script src="./app.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/pwa-192x192.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="apple-touch-icon" href="/pwa-192x192.png" />
+    <title>Field Data App</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
