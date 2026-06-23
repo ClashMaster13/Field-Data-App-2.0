@@ -70,17 +70,17 @@ export default function TraitSetup() {
         </div>
 
         {newTrait.type !== 'text' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-            <div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+            <div style={{ flex: '1 1 80px', minWidth: 0 }}>
               <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Hard Min</label>
               <input type="number" placeholder="e.g. 0" className="workspace-selector modern-input" style={{ width: '100%', marginTop: '4px' }} value={newTrait.min} onChange={e => setNewTrait({...newTrait, min: e.target.value})} />
             </div>
-            <div>
+            <div style={{ flex: '1 1 80px', minWidth: 0 }}>
               <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Hard Max</label>
               <input type="number" placeholder="e.g. 100" className="workspace-selector modern-input" style={{ width: '100%', marginTop: '4px' }} value={newTrait.max} onChange={e => setNewTrait({...newTrait, max: e.target.value})} />
             </div>
-            <div>
-              <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Soft Max (Warn)</label>
+            <div style={{ flex: '1 1 80px', minWidth: 0 }}>
+              <label style={{ fontSize: '12px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>Soft Max</label>
               <input type="number" placeholder="e.g. 80" className="workspace-selector modern-input" style={{ width: '100%', marginTop: '4px' }} value={newTrait.soft_max} onChange={e => setNewTrait({...newTrait, soft_max: e.target.value})} />
             </div>
           </div>
