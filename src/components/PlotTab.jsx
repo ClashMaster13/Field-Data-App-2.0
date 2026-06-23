@@ -49,6 +49,14 @@ export default function PlotTab() {
 
   const [searchBy, setSearchBy] = useState('plot');
 
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showFullInfoModal, setShowFullInfoModal] = useState(false);
+  const { visibleMetadata, setVisibleMetadata } = useStore();
+
+  const toggleMetadata = (key) => {
+    setVisibleMetadata({ ...visibleMetadata, [key]: !visibleMetadata[key] });
+  };
+
   const jumpToExactMatch = (term) => {
     if (!term) return;
     const lowerTerm = String(term).toLowerCase().trim();
@@ -140,6 +148,18 @@ export default function PlotTab() {
     }
   };
 
+  // Helper to safely display mapped metadata
+  const renderMetaField = (keyName, label) => {
+    if (colMap[keyName] && currentPlot[colMap[keyName]] && visibleMetadata[keyName]) {
+      return (
+        <div style={{ fontSize: '14px', color: '#475569', marginTop: '4px' }}>
+          <strong>{label}:</strong> {currentPlot[colMap[keyName]]}
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="tab-panel active-panel fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -175,12 +195,94 @@ export default function PlotTab() {
         </button>
       </div>
 
-      <div className="modern-card" style={{ padding: '16px', marginBottom: '16px', background: '#f8fafc' }}>
-        <h3 style={{ margin: '0 0 8px 0', color: '#0ea5e9', fontSize: '20px' }}>Plot: {plotIdStr}</h3>
-        {colMap.geno && currentPlot[colMap.geno] && (
-          <div style={{ color: '#22c55e', fontWeight: 'bold' }}>Genotype: {currentPlot[colMap.geno]}</div>
-        )}
+      <div className="modern-card" style={{ padding: '16px', marginBottom: '16px', background: '#f8fafc', position: 'relative' }}>
+        {/* Settings Icon */}
+        <button 
+          onClick={(e) => { e.stopPropagation(); setShowSettingsModal(true); }}
+          style={{ position: 'absolute', top: '12px', right: '12px', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+        >
+          ⚙️
+        </button>
+
+        {/* Clickable Area for Full Info */}
+        <div style={{ cursor: 'pointer' }} onClick={() => setShowFullInfoModal(true)}>
+          <h3 style={{ margin: '0 0 8px 0', color: '#0ea5e9', fontSize: '20px' }}>Plot: {plotIdStr}</h3>
+          {colMap.geno && currentPlot[colMap.geno] && (
+            <div style={{ color: '#22c55e', fontWeight: 'bold', marginBottom: '8px' }}>Genotype: {currentPlot[colMap.geno]}</div>
+          )}
+          
+          <div style={{ marginTop: '8px', borderTop: '1px solid #e2e8f0', paddingTop: '8px' }}>
+            {renderMetaField('trial', 'Trial Name')}
+            {renderMetaField('location', 'Location')}
+            {renderMetaField('year', 'Year')}
+            {renderMetaField('row', 'Row')}
+            {renderMetaField('col', 'Column')}
+            {renderMetaField('rep', 'Rep')}
+            {renderMetaField('pedigree', 'Pedigree')}
+          </div>
+          <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px', fontStyle: 'italic', textAlign: 'center' }}>
+            Tap card to view all plot data
+          </div>
+        </div>
       </div>
+
+      {/* Display Settings Modal */}
+      {showSettingsModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '400px', maxHeight: '80vh', overflowY: 'auto' }}>
+            <h3 style={{ marginTop: 0 }}>Visible Information</h3>
+            <p className="text-muted" style={{ fontSize: '14px' }}>Choose which mapped fields appear on the main plot card.</p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+              {['trial', 'location', 'year', 'row', 'col', 'rep', 'pedigree'].map(key => (
+                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={visibleMetadata[key] || false} 
+                    onChange={() => toggleMetadata(key)} 
+                    disabled={!colMap[key]}
+                  />
+                  <span style={{ textTransform: 'capitalize', color: colMap[key] ? '#1e293b' : '#cbd5e1' }}>
+                    {key === 'col' ? 'Column' : key} {colMap[key] ? `(${colMap[key]})` : '(Not Mapped)'}
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            <button 
+              onClick={() => setShowSettingsModal(false)}
+              style={{ width: '100%', padding: '12px', background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Full Info Modal */}
+      {showFullInfoModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowFullInfoModal(false)}>
+          <div style={{ background: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '400px', maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0, borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>All Plot Data</h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+              {Object.keys(currentPlot).map(key => (
+                <div key={key} style={{ display: 'flex', flexDirection: 'column' }}>
+                  <strong style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase' }}>{key}</strong>
+                  <span style={{ fontSize: '15px', color: '#1e293b', wordBreak: 'break-word' }}>{currentPlot[key] || '-'}</span>
+                </div>
+              ))}
+            </div>
+
+            <button 
+              onClick={() => setShowFullInfoModal(false)}
+              style={{ width: '100%', padding: '12px', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '8px', fontWeight: 'bold', marginTop: '24px' }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Voice Dictation Hub */}
       <VoiceDictation onDictationResult={handleVoiceDictation} />

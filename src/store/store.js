@@ -13,8 +13,11 @@ export const useStore = create(
       trialData: [],
       setTrialData: (data) => set({ trialData: data }),
       
-      colMap: { plot: '', geno: '', trial: '' },
+      colMap: { plot: '', geno: '', trial: '', location: '', year: '', row: '', col: '', rep: '', pedigree: '' },
       setColMap: (map) => set({ colMap: map }),
+
+      visibleMetadata: { trial: true, location: true, year: true, row: true, col: true, rep: true, pedigree: true },
+      setVisibleMetadata: (metadata) => set({ visibleMetadata: metadata }),
 
       traits: [], // Array of objects: { name: 'Yield', type: 'decimal', soft_max: 20 }
       setTraits: (traits) => set({ traits: traits }),

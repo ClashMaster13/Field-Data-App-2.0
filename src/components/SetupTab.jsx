@@ -13,12 +13,15 @@ export default function SetupTab() {
   // Staging state
   const [stagedData, setStagedData] = useState(null);
   const [availableHeaders, setAvailableHeaders] = useState([]);
-  const [mapping, setMapping] = useState({
     plot: '',
     geno: '',
     trial: '',
+    location: '',
+    year: '',
     row: '',
-    col: ''
+    col: '',
+    rep: '',
+    pedigree: ''
   });
 
   const handleFileUpload = (e) => {
@@ -45,17 +48,25 @@ export default function SetupTab() {
 
         // Auto-detect to pre-fill mapping dropdowns
         let pCol = keys.find(k => k.toLowerCase() === 'plot' || k.toLowerCase() === 'plot_id' || k.toLowerCase() === 'plotid' || k.toLowerCase() === 'id');
-        let gCol = keys.find(k => k.toLowerCase() === 'genotype' || k.toLowerCase() === 'entry' || k.toLowerCase() === 'variety');
-        let tCol = keys.find(k => k.toLowerCase() === 'trial' || k.toLowerCase() === 'experiment');
+        let gCol = keys.find(k => k.toLowerCase() === 'genotype' || k.toLowerCase() === 'entry' || k.toLowerCase() === 'variety' || k.toLowerCase() === 'pedigree');
+        let tCol = keys.find(k => k.toLowerCase() === 'trial' || k.toLowerCase() === 'experiment' || k.toLowerCase() === 'trial type');
+        let locCol = keys.find(k => k.toLowerCase() === 'location' || k.toLowerCase() === 'site');
+        let yrCol = keys.find(k => k.toLowerCase() === 'year' || k.toLowerCase() === 'site year');
         let rCol = keys.find(k => k.toLowerCase() === 'row' || k.toLowerCase() === 'range');
         let cCol = keys.find(k => k.toLowerCase() === 'col' || k.toLowerCase() === 'column' || k.toLowerCase() === 'pass');
+        let repCol = keys.find(k => k.toLowerCase() === 'rep' || k.toLowerCase() === 'replication');
+        let pedCol = keys.find(k => k.toLowerCase() === 'pedigree' || k.toLowerCase() === 'cross');
 
         setMapping({
           plot: pCol || '',
           geno: gCol || '',
           trial: tCol || '',
+          location: locCol || '',
+          year: yrCol || '',
           row: rCol || '',
-          col: cCol || ''
+          col: cCol || '',
+          rep: repCol || '',
+          pedigree: pedCol || ''
         });
 
         if (!workspaceName) {
@@ -151,6 +162,46 @@ export default function SetupTab() {
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '4px' }}>Genotype / Entry</label>
               <select className="workspace-selector modern-input" style={{ width: '100%' }} value={mapping.geno} onChange={e => setMapping({...mapping, geno: e.target.value})}>
+                <option value="">-- Select Column --</option>
+                {availableHeaders.map(h => <option key={h} value={h}>{h}</option>)}
+              </select>
+            </div>
+            {/* Trial Mapping */}
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '4px' }}>Trial Name / Type</label>
+              <select className="workspace-selector modern-input" style={{ width: '100%' }} value={mapping.trial} onChange={e => setMapping({...mapping, trial: e.target.value})}>
+                <option value="">-- Select Column --</option>
+                {availableHeaders.map(h => <option key={h} value={h}>{h}</option>)}
+              </select>
+            </div>
+            {/* Location Mapping */}
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '4px' }}>Location / Site</label>
+              <select className="workspace-selector modern-input" style={{ width: '100%' }} value={mapping.location} onChange={e => setMapping({...mapping, location: e.target.value})}>
+                <option value="">-- Select Column --</option>
+                {availableHeaders.map(h => <option key={h} value={h}>{h}</option>)}
+              </select>
+            </div>
+            {/* Year Mapping */}
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '4px' }}>Site Year</label>
+              <select className="workspace-selector modern-input" style={{ width: '100%' }} value={mapping.year} onChange={e => setMapping({...mapping, year: e.target.value})}>
+                <option value="">-- Select Column --</option>
+                {availableHeaders.map(h => <option key={h} value={h}>{h}</option>)}
+              </select>
+            </div>
+            {/* Pedigree Mapping */}
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '4px' }}>Pedigree</label>
+              <select className="workspace-selector modern-input" style={{ width: '100%' }} value={mapping.pedigree} onChange={e => setMapping({...mapping, pedigree: e.target.value})}>
+                <option value="">-- Select Column --</option>
+                {availableHeaders.map(h => <option key={h} value={h}>{h}</option>)}
+              </select>
+            </div>
+            {/* Rep Mapping */}
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '4px' }}>Replication (Rep)</label>
+              <select className="workspace-selector modern-input" style={{ width: '100%' }} value={mapping.rep} onChange={e => setMapping({...mapping, rep: e.target.value})}>
                 <option value="">-- Select Column --</option>
                 {availableHeaders.map(h => <option key={h} value={h}>{h}</option>)}
               </select>
