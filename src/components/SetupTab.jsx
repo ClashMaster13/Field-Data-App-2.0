@@ -1,86 +1,89 @@
 import React, { useState } from 'react';
-import Papa from 'papaparse';
-import { useStore } from '../store/store';
-import { db } from '../db/db';
-import { Upload, CheckCircle, Save } from 'lucide-react';
-import TraitSetup from './TraitSetup';
-
-export default function SetupTab() {
-  const { activeWorkspaceId, setActiveWorkspace, setTrialData, setColMap } = useStore();
-  const [loading, setLoading] = useState(false);
-  const [workspaceName, setWorkspaceName] = useState('');
-
-  // Staging state
-  const [stagedData, setStagedData] = useState(null);
-  const [availableHeaders, setAvailableHeaders] = useState([]);
-  const [mapping, setMapping] = useState({
-    plot: '',
-    geno: '',
-    trial: '',
-    location: '',
-    year: '',
-    row: '',
-    col: '',
-    rep: '',
-    pedigree: ''
-  });
+import * as XLSX from 'xlsx';
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     setLoading(true);
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: 'greedy',
-      complete: async (results) => {
-        let rawData = results.data;
-        const cleanedData = rawData.map(row => {
-          const newRow = {};
-          for (let key in row) {
-            newRow[key.trim()] = row[key];
-          }
-          return newRow;
-        });
+    const isExcel = file.name.match(/\.(xlsx|xls)$/i);
 
-        const keys = Object.keys(cleanedData[0] || {});
-        setAvailableHeaders(keys);
-        setStagedData(cleanedData);
-
-        // Auto-detect to pre-fill mapping dropdowns
-        let pCol = keys.find(k => k.toLowerCase() === 'plot' || k.toLowerCase() === 'plot_id' || k.toLowerCase() === 'plotid' || k.toLowerCase() === 'id');
-        let gCol = keys.find(k => k.toLowerCase() === 'genotype' || k.toLowerCase() === 'entry' || k.toLowerCase() === 'variety' || k.toLowerCase() === 'pedigree');
-        let tCol = keys.find(k => k.toLowerCase() === 'trial' || k.toLowerCase() === 'experiment' || k.toLowerCase() === 'trial type');
-        let locCol = keys.find(k => k.toLowerCase() === 'location' || k.toLowerCase() === 'site');
-        let yrCol = keys.find(k => k.toLowerCase() === 'year' || k.toLowerCase() === 'site year');
-        let rCol = keys.find(k => k.toLowerCase() === 'row' || k.toLowerCase() === 'range');
-        let cCol = keys.find(k => k.toLowerCase() === 'col' || k.toLowerCase() === 'column' || k.toLowerCase() === 'pass');
-        let repCol = keys.find(k => k.toLowerCase() === 'rep' || k.toLowerCase() === 'replication');
-        let pedCol = keys.find(k => k.toLowerCase() === 'pedigree' || k.toLowerCase() === 'cross');
-
-        setMapping({
-          plot: pCol || '',
-          geno: gCol || '',
-          trial: tCol || '',
-          location: locCol || '',
-          year: yrCol || '',
-          row: rCol || '',
-          col: cCol || '',
-          rep: repCol || '',
-          pedigree: pedCol || ''
-        });
-
-        if (!workspaceName) {
-          setWorkspaceName(file.name.replace('.csv', ''));
+    if (isExcel) {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const bstr = evt.target.result;
+          const workbook = XLSX.read(bstr, { type: 'binary' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const rawData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+          processData(rawData, file.name);
+        } catch (err) {
+          setLoading(false);
+          alert('Error parsing Excel: ' + err.message);
         }
-        
+      };
+      reader.onerror = () => {
         setLoading(false);
-      },
-      error: (err) => {
-        setLoading(false);
-        alert('Error parsing CSV: ' + err.message);
+        alert('Error reading file');
+      };
+      reader.readAsBinaryString(file);
+    } else {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: 'greedy',
+        complete: async (results) => {
+          processData(results.data, file.name);
+        },
+        error: (err) => {
+          setLoading(false);
+          alert('Error parsing CSV: ' + err.message);
+        }
+      });
+    }
+  };
+
+  const processData = (rawData, filename) => {
+    const cleanedData = rawData.map(row => {
+      const newRow = {};
+      for (let key in row) {
+        newRow[key.trim()] = row[key];
       }
+      return newRow;
     });
+
+    const keys = Object.keys(cleanedData[0] || {});
+    setAvailableHeaders(keys);
+    setStagedData(cleanedData);
+
+    // Auto-detect to pre-fill mapping dropdowns
+    let pCol = keys.find(k => k.toLowerCase() === 'plot' || k.toLowerCase() === 'plot_id' || k.toLowerCase() === 'plotid' || k.toLowerCase() === 'id');
+    let gCol = keys.find(k => k.toLowerCase() === 'genotype' || k.toLowerCase() === 'entry' || k.toLowerCase() === 'variety' || k.toLowerCase() === 'pedigree');
+    let tCol = keys.find(k => k.toLowerCase() === 'trial' || k.toLowerCase() === 'experiment' || k.toLowerCase() === 'trial type');
+    let locCol = keys.find(k => k.toLowerCase() === 'location' || k.toLowerCase() === 'site');
+    let yrCol = keys.find(k => k.toLowerCase() === 'year' || k.toLowerCase() === 'site year');
+    let rCol = keys.find(k => k.toLowerCase() === 'row' || k.toLowerCase() === 'range');
+    let cCol = keys.find(k => k.toLowerCase() === 'col' || k.toLowerCase() === 'column' || k.toLowerCase() === 'pass');
+    let repCol = keys.find(k => k.toLowerCase() === 'rep' || k.toLowerCase() === 'replication');
+    let pedCol = keys.find(k => k.toLowerCase() === 'pedigree' || k.toLowerCase() === 'cross');
+
+    setMapping({
+      plot: pCol || '',
+      geno: gCol || '',
+      trial: tCol || '',
+      location: locCol || '',
+      year: yrCol || '',
+      row: rCol || '',
+      col: cCol || '',
+      rep: repCol || '',
+      pedigree: pedCol || ''
+    });
+
+    if (!workspaceName) {
+      setWorkspaceName(filename.replace(/\.(csv|xlsx|xls)$/i, ''));
+    }
+    
+    setLoading(false);
   };
 
   const confirmMappingAndCreate = async () => {
@@ -110,7 +113,7 @@ export default function SetupTab() {
   return (
     <div className="tab-panel active-panel fade-in">
       <h2>Data Setup</h2>
-      <p className="text-muted">Create a new workspace by uploading a Trial Map (CSV).</p>
+      <p className="text-muted">Create a new workspace by uploading a Trial Map (CSV or Excel).</p>
       
       {!stagedData ? (
         <>
@@ -128,9 +131,9 @@ export default function SetupTab() {
 
           <div className="upload-card modern-card">
             <Upload size={32} className="upload-icon" />
-            <h3>Drop CSV Here</h3>
+            <h3>Drop File Here</h3>
             <p>{loading ? 'Processing...' : 'or click to browse'}</p>
-            <input type="file" accept=".csv" className="file-input" onChange={handleFileUpload} disabled={loading} />
+            <input type="file" accept=".csv, .xlsx, .xls" className="file-input" onChange={handleFileUpload} disabled={loading} />
           </div>
 
           {activeWorkspaceId && (
