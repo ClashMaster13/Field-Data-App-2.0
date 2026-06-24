@@ -6,9 +6,10 @@ function stringToColor(str) {
   for (let i = 0; i < str.length; i++) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
-  const h = Math.abs(hash) % 360;
-  const s = 60 + (Math.abs(hash) % 30); // 60-90%
-  const l = 40 + (Math.abs(hash) % 30); // 40-70%
+  // Multiply by a large float (like the golden ratio) to scatter hues wildly for similar hashes
+  const h = Math.abs(Math.floor(hash * 137.508)) % 360;
+  const s = 60 + (Math.abs(hash * 73) % 30); // 60-90%
+  const l = 40 + (Math.abs(hash * 19) % 30); // 40-70%
   const textColor = l < 55 ? '#ffffff' : '#000000';
   return { bg: `hsl(${h}, ${s}%, ${l}%)`, text: textColor };
 }
@@ -40,27 +41,34 @@ export default function GridTab() {
     let minCol = Infinity;
     const genotypes = new Set();
 
-    const parsedData = trialData.map(d => {
+    let parsedData = trialData.map(d => {
       const r = parseInt(d[rowKey], 10);
       const c = parseInt(d[colKey], 10);
       const geno = String(d[genoKey] || 'Unknown');
       
       if (!isNaN(r)) {
-        if (r > maxRow) maxRow = r;
         if (r < minRow) minRow = r;
       }
       if (!isNaN(c)) {
-        if (c > maxCol) maxCol = c;
         if (c < minCol) minCol = c;
       }
       if (geno) genotypes.add(geno);
       
-      return { ...d, _r: r, _c: c, _p: String(d[plotKey] || ''), _g: geno };
-    }).filter(d => !isNaN(d._r) && !isNaN(d._c));
+      return { ...d, _rawR: r, _rawC: c, _p: String(d[plotKey] || ''), _g: geno };
+    }).filter(d => !isNaN(d._rawR) && !isNaN(d._rawC));
 
     if (minRow === Infinity || minCol === Infinity) {
       return { error: 'Row and Column data must contain valid numbers.' };
     }
+
+    // Normalize so grid always starts at 1,1
+    parsedData = parsedData.map(d => {
+      const normR = d._rawR - minRow + 1;
+      const normC = d._rawC - minCol + 1;
+      if (normR > maxRow) maxRow = normR;
+      if (normC > maxCol) maxCol = normC;
+      return { ...d, _r: normR, _c: normC };
+    });
 
     const uniqueGenotypes = Array.from(genotypes).sort();
     const colorMap = {};
@@ -69,9 +77,9 @@ export default function GridTab() {
     });
 
     const grid = [];
-    for (let r = maxRow; r >= minRow; r--) {
+    for (let r = maxRow; r >= 1; r--) {
       const rowArr = [];
-      for (let c = minCol; c <= maxCol; c++) {
+      for (let c = 1; c <= maxCol; c++) {
         const plot = parsedData.find(p => p._r === r && p._c === c);
         rowArr.push({
           r, c, plot,
@@ -144,16 +152,13 @@ export default function GridTab() {
           {/* Column footers */}
           <div style={{ display: 'flex' }}>
              <div style={{ width: '60px', background: '#fff' }}></div>
-             {Array.from({ length: gridData.maxCol - gridData.minCol + 1 }).map((_, i) => {
-               const actualCol = gridData.minCol + i;
-               return (
-                 <div key={`cf-${actualCol}`} style={{ width: '100px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', background: '#fff', color: '#000' }}>
-                   <div style={{ transform: 'rotate(-45deg)', transformOrigin: 'center' }}>
-                     Col {actualCol}
-                   </div>
+             {Array.from({ length: gridData.maxCol }).map((_, i) => (
+               <div key={`cf-${i}`} style={{ width: '100px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', background: '#fff', color: '#000' }}>
+                 <div style={{ transform: 'rotate(-45deg)', transformOrigin: 'center' }}>
+                   Col {i + 1}
                  </div>
-               );
-             })}
+               </div>
+            ))}
           </div>
         </div>
       </div>
