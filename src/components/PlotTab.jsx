@@ -12,7 +12,13 @@ export default function PlotTab() {
   const [currentPlotIndex, setCurrentPlotIndex] = useState(0);
   const [showScanner, setShowScanner] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [plotScores, setPlotScores] = useState({}); // Local state for the current plot's scores
+  const [plotScores, setPlotScores] = useState({});
+  const [searchBy, setSearchBy] = useState('plot');
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showFullInfoModal, setShowFullInfoModal] = useState(false);
+
+  // Destructure visibleMetadata safely handling if it's undefined
+  const { visibleMetadata = {}, setVisibleMetadata } = useStore();
 
   useEffect(() => {
     setPlotScores({});
@@ -46,12 +52,6 @@ export default function PlotTab() {
     setShowScanner(false);
     jumpToExactMatch(decodedText);
   };
-
-  const [searchBy, setSearchBy] = useState('plot');
-
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [showFullInfoModal, setShowFullInfoModal] = useState(false);
-  const { visibleMetadata, setVisibleMetadata } = useStore();
 
   const toggleMetadata = (key) => {
     setVisibleMetadata({ ...visibleMetadata, [key]: !visibleMetadata[key] });
