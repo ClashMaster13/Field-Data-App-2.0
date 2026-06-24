@@ -1,6 +1,30 @@
 import React, { useState } from 'react';
+import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
+import { useStore } from '../store/store';
+import { db } from '../db/db';
+import { Upload, CheckCircle, Save } from 'lucide-react';
+import TraitSetup from './TraitSetup';
 
+export default function SetupTab() {
+  const { activeWorkspaceId, setActiveWorkspace, setTrialData, setColMap } = useStore();
+  const [loading, setLoading] = useState(false);
+  const [workspaceName, setWorkspaceName] = useState('');
+
+  // Staging state
+  const [stagedData, setStagedData] = useState(null);
+  const [availableHeaders, setAvailableHeaders] = useState([]);
+  const [mapping, setMapping] = useState({
+    plot: '',
+    geno: '',
+    trial: '',
+    location: '',
+    year: '',
+    row: '',
+    col: '',
+    rep: '',
+    pedigree: ''
+  });
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
