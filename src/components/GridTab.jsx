@@ -1,21 +1,17 @@
 import React, { useMemo } from 'react';
 import { useStore } from '../store/store';
 
-const PALETTE = [
-  { bg: '#1f77b4', text: '#ffffff' }, // blue
-  { bg: '#ff7f0e', text: '#000000' }, // orange
-  { bg: '#98df8a', text: '#000000' }, // light green
-  { bg: '#ff9896', text: '#000000' }, // pinkish
-  { bg: '#8c564b', text: '#ffffff' }, // brown
-  { bg: '#e377c2', text: '#000000' }, // pink/purple
-  { bg: '#c7c7c7', text: '#000000' }, // gray
-  { bg: '#dbdb8d', text: '#000000' }, // yellow-green
-  { bg: '#9edae5', text: '#000000' }, // light blue
-  { bg: '#2ca02c', text: '#ffffff' },
-  { bg: '#d62728', text: '#ffffff' },
-  { bg: '#9467bd', text: '#ffffff' },
-  { bg: '#17becf', text: '#000000' }
-];
+function stringToColor(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const h = Math.abs(hash) % 360;
+  const s = 60 + (Math.abs(hash) % 30); // 60-90%
+  const l = 40 + (Math.abs(hash) % 30); // 40-70%
+  const textColor = l < 55 ? '#ffffff' : '#000000';
+  return { bg: `hsl(${h}, ${s}%, ${l}%)`, text: textColor };
+}
 
 export default function GridTab() {
   const { trialData, colMap } = useStore();
@@ -38,8 +34,10 @@ export default function GridTab() {
       return { error: 'Your CSV must contain mapped "Row" and "Column" headers to generate the 2D map.' };
     }
 
-    let maxRow = 0;
-    let maxCol = 0;
+    let maxRow = -Infinity;
+    let maxCol = -Infinity;
+    let minRow = Infinity;
+    let minCol = Infinity;
     const genotypes = new Set();
 
     const parsedData = trialData.map(d => {
@@ -47,33 +45,43 @@ export default function GridTab() {
       const c = parseInt(d[colKey], 10);
       const geno = String(d[genoKey] || 'Unknown');
       
-      if (r > maxRow) maxRow = r;
-      if (c > maxCol) maxCol = c;
+      if (!isNaN(r)) {
+        if (r > maxRow) maxRow = r;
+        if (r < minRow) minRow = r;
+      }
+      if (!isNaN(c)) {
+        if (c > maxCol) maxCol = c;
+        if (c < minCol) minCol = c;
+      }
       if (geno) genotypes.add(geno);
       
       return { ...d, _r: r, _c: c, _p: String(d[plotKey] || ''), _g: geno };
     }).filter(d => !isNaN(d._r) && !isNaN(d._c));
 
+    if (minRow === Infinity || minCol === Infinity) {
+      return { error: 'Row and Column data must contain valid numbers.' };
+    }
+
     const uniqueGenotypes = Array.from(genotypes).sort();
     const colorMap = {};
-    uniqueGenotypes.forEach((g, idx) => {
-      colorMap[g] = PALETTE[idx % PALETTE.length];
+    uniqueGenotypes.forEach((g) => {
+      colorMap[g] = stringToColor(g);
     });
 
     const grid = [];
-    for (let r = maxRow; r >= 1; r--) {
+    for (let r = maxRow; r >= minRow; r--) {
       const rowArr = [];
-      for (let c = 1; c <= maxCol; c++) {
+      for (let c = minCol; c <= maxCol; c++) {
         const plot = parsedData.find(p => p._r === r && p._c === c);
         rowArr.push({
           r, c, plot,
-          colors: plot ? colorMap[plot._g] : { bg: '#ffffff', text: '#000000' }
+          colors: plot ? colorMap[plot._g] : { bg: '#f1f5f9', text: '#000000' }
         });
       }
       grid.push({ rowIndex: r, cols: rowArr });
     }
 
-    return { grid, maxRow, maxCol };
+    return { grid, maxRow, maxCol, minRow, minCol };
   }, [trialData, colMap]);
 
   if (!gridData) return <div style={{ padding: '20px' }}>No data.</div>;
@@ -136,13 +144,16 @@ export default function GridTab() {
           {/* Column footers */}
           <div style={{ display: 'flex' }}>
              <div style={{ width: '60px', background: '#fff' }}></div>
-             {Array.from({ length: gridData.maxCol }).map((_, i) => (
-               <div key={`cf-${i}`} style={{ width: '100px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', background: '#fff', color: '#000' }}>
-                 <div style={{ transform: 'rotate(-45deg)', transformOrigin: 'center' }}>
-                   Col {i + 1}
+             {Array.from({ length: gridData.maxCol - gridData.minCol + 1 }).map((_, i) => {
+               const actualCol = gridData.minCol + i;
+               return (
+                 <div key={`cf-${actualCol}`} style={{ width: '100px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', background: '#fff', color: '#000' }}>
+                   <div style={{ transform: 'rotate(-45deg)', transformOrigin: 'center' }}>
+                     Col {actualCol}
+                   </div>
                  </div>
-               </div>
-            ))}
+               );
+             })}
           </div>
         </div>
       </div>
