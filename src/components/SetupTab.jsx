@@ -13,6 +13,7 @@ export default function SetupTab() {
   // Staging state
   const [stagedData, setStagedData] = useState(null);
   const [availableHeaders, setAvailableHeaders] = useState([]);
+  const [mapping, setMapping] = useState({
     plot: '',
     geno: '',
     trial: '',
