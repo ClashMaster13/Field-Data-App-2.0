@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useStore } from '../store/store';
 
 function stringToColor(str) {
@@ -16,6 +16,7 @@ function stringToColor(str) {
 
 export default function GridTab() {
   const { trialData, colMap } = useStore();
+  const [corner, setCorner] = useState('bottom-left');
 
   const gridData = useMemo(() => {
     if (!trialData || trialData.length === 0) return null;
@@ -77,9 +78,23 @@ export default function GridTab() {
     });
 
     const grid = [];
-    for (let r = maxRow; r >= 1; r--) {
+    
+    // Determine row iteration order
+    const isBottom = corner.includes('bottom');
+    const isRight = corner.includes('right');
+    
+    const rowStart = isBottom ? maxRow : 1;
+    const rowEnd = isBottom ? 1 : maxRow;
+    const rowStep = isBottom ? -1 : 1;
+    
+    // Determine col iteration order
+    const colStart = isRight ? maxCol : 1;
+    const colEnd = isRight ? 1 : maxCol;
+    const colStep = isRight ? -1 : 1;
+
+    for (let r = rowStart; isBottom ? r >= rowEnd : r <= rowEnd; r += rowStep) {
       const rowArr = [];
-      for (let c = 1; c <= maxCol; c++) {
+      for (let c = colStart; isRight ? c >= colEnd : c <= colEnd; c += colStep) {
         const plot = parsedData.find(p => p._r === r && p._c === c);
         rowArr.push({
           r, c, plot,
@@ -89,8 +104,13 @@ export default function GridTab() {
       grid.push({ rowIndex: r, cols: rowArr });
     }
 
-    return { grid, maxRow, maxCol, minRow, minCol };
-  }, [trialData, colMap]);
+    const colHeaders = [];
+    for (let c = colStart; isRight ? c >= colEnd : c <= colEnd; c += colStep) {
+       colHeaders.push(c);
+    }
+
+    return { grid, maxRow, maxCol, minRow, minCol, colHeaders };
+  }, [trialData, colMap, corner]);
 
   if (!gridData) return <div style={{ padding: '20px' }}>No data.</div>;
   
@@ -108,9 +128,20 @@ export default function GridTab() {
   return (
     <div className="tab-panel active-panel fade-in" style={{ paddingBottom: '100px' }}>
       <h2 style={{ textAlign: 'center', marginBottom: '8px' }}>Color-Coded Field Layout Map</h2>
-      <p className="text-muted" style={{ textAlign: 'center', marginBottom: '24px' }}>
-        Row 1 starts at the bottom. Colors indicate the Genotype.
-      </p>
+      
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '24px', gap: '12px' }}>
+        <label style={{ fontWeight: '500' }}>Grid Starting Corner:</label>
+        <select 
+          value={corner} 
+          onChange={e => setCorner(e.target.value)}
+          style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #ccc' }}
+        >
+          <option value="bottom-left">Bottom Left (Row 1 bottom, Col 1 left)</option>
+          <option value="bottom-right">Bottom Right (Row 1 bottom, Col 1 right)</option>
+          <option value="top-left">Top Left (Row 1 top, Col 1 left)</option>
+          <option value="top-right">Top Right (Row 1 top, Col 1 right)</option>
+        </select>
+      </div>
 
       <div style={{ overflowX: 'auto', paddingBottom: '20px', display: 'flex', justifyContent: 'center' }}>
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 'min-content', border: '1.5px solid #000', width: 'max-content', background: '#fff' }}>
@@ -152,10 +183,10 @@ export default function GridTab() {
           {/* Column footers */}
           <div style={{ display: 'flex' }}>
              <div style={{ width: '60px', background: '#fff' }}></div>
-             {Array.from({ length: gridData.maxCol }).map((_, i) => (
-               <div key={`cf-${i}`} style={{ width: '100px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', background: '#fff', color: '#000' }}>
+             {gridData.colHeaders.map((c) => (
+               <div key={`cf-${c}`} style={{ width: '100px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', background: '#fff', color: '#000' }}>
                  <div style={{ transform: 'rotate(-45deg)', transformOrigin: 'center' }}>
-                   Col {i + 1}
+                   Col {c}
                  </div>
                </div>
             ))}
