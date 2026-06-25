@@ -16,6 +16,7 @@ export default function PlotTab() {
   const [searchBy, setSearchBy] = useState('plot');
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showFullInfoModal, setShowFullInfoModal] = useState(false);
+  const [voiceFeedback, setVoiceFeedback] = useState({ message: '', isError: false });
 
   // Destructure visibleMetadata safely handling if it's undefined
   const { visibleMetadata = {}, setVisibleMetadata } = useStore();
@@ -102,11 +103,16 @@ export default function PlotTab() {
     let matchedTrait = null;
     let matchedValue = null;
 
+    // Clean text by removing spaces and punctuation to help match acronyms like "D 50 H" to "D50H"
+    const cleanText = parsedText.replace(/[^a-z0-9]/g, '');
+
     for (const trait of traits) {
       const traitName = trait.name.toLowerCase();
-      const traitIndex = parsedText.indexOf(traitName);
+      const cleanTrait = traitName.replace(/[^a-z0-9]/g, '');
+      
+      const traitIndex = cleanText.indexOf(cleanTrait);
       if (traitIndex !== -1) {
-        const afterTrait = parsedText.slice(traitIndex + traitName.length);
+        const afterTrait = cleanText.slice(traitIndex + cleanTrait.length);
         const numMatch = afterTrait.match(/\d+(\.\d+)?/);
         if (numMatch) {
           matchedTrait = trait.name;
@@ -117,10 +123,16 @@ export default function PlotTab() {
     }
 
     if (matchedTrait && matchedValue) {
-      setPlotScores(prev => ({ ...prev, [matchedTrait]: matchedValue }));
+      updateScore(matchedTrait, matchedValue);
+      setVoiceFeedback({ message: `Saved ${matchedValue} for ${matchedTrait}`, isError: false });
     } else {
-      alert(`Voice recognized: "${text}" but could not extract trait and value.`);
+      setVoiceFeedback({ message: `Recognized: "${text}" but couldn't find a trait + number.`, isError: true });
     }
+    
+    // Clear feedback after 4 seconds
+    setTimeout(() => {
+      setVoiceFeedback({ message: '', isError: false });
+    }, 4000);
   };
 
   const updateScore = async (traitName, val) => {
@@ -296,6 +308,22 @@ export default function PlotTab() {
 
       {/* Voice Dictation Hub */}
       <VoiceDictation onDictationResult={handleVoiceDictation} />
+      
+      {voiceFeedback.message && (
+        <div style={{ 
+          margin: '0 auto 16px auto', 
+          padding: '10px 16px', 
+          background: voiceFeedback.isError ? '#fef2f2' : '#f0fdf4', 
+          color: voiceFeedback.isError ? '#ef4444' : '#15803d',
+          border: `1px solid ${voiceFeedback.isError ? '#fecaca' : '#bbf7d0'}`,
+          borderRadius: '8px',
+          fontSize: '14px',
+          textAlign: 'center',
+          maxWidth: '400px'
+        }}>
+          {voiceFeedback.message}
+        </div>
+      )}
 
       {/* Photo Capture Hub */}
       <PhotoCapture plotId={plotIdStr} />
