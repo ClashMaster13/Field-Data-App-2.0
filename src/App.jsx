@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useStore } from './store/store';
 import { db } from './db/db';
-import { Settings, CloudSync, Map, Activity, List, Trash2, Download } from 'lucide-react';
+import { Settings, CloudSync, Map, Activity, List, Trash2, Download, BarChart } from 'lucide-react';
 import SetupTab from './components/SetupTab';
 import PlotTab from './components/PlotTab';
 import FieldGrid from './components/FieldGrid';
 import TraitTab from './components/TraitTab';
+import ProgressTab from './components/ProgressTab';
 import './App.css';
 
 function App() {
@@ -173,6 +174,7 @@ function App() {
         {activeTab === 'plot' && <PlotTab />}
         {activeTab === 'trait' && <TraitTab />}
         {activeTab === 'grid' && <FieldGrid />}
+        {activeTab === 'progress' && <ProgressTab />}
       </main>
 
       {/* BOTTOM NAVIGATION */}
@@ -192,6 +194,10 @@ function App() {
         <button className={`nav-item ${activeTab === 'grid' ? 'active' : ''}`} onClick={() => setActiveTab('grid')}>
           <Map size={22} />
           <span>Grid Map</span>
+        </button>
+        <button className={`nav-item ${activeTab === 'progress' ? 'active' : ''}`} onClick={() => setActiveTab('progress')}>
+          <BarChart size={22} />
+          <span>Progress</span>
         </button>
       </nav>
     </div>
