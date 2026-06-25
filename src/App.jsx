@@ -4,7 +4,7 @@ import { db } from './db/db';
 import { Settings, CloudSync, Map, Activity, List, Trash2, Download } from 'lucide-react';
 import SetupTab from './components/SetupTab';
 import PlotTab from './components/PlotTab';
-import GridTab from './components/GridTab';
+import FieldGrid from './components/FieldGrid';
 import TraitTab from './components/TraitTab';
 import './App.css';
 
@@ -172,7 +172,7 @@ function App() {
         {activeTab === 'setup' && <SetupTab />}
         {activeTab === 'plot' && <PlotTab />}
         {activeTab === 'trait' && <TraitTab />}
-        {activeTab === 'grid' && <GridTab />}
+        {activeTab === 'grid' && <FieldGrid />}
       </main>
 
       {/* BOTTOM NAVIGATION */}
