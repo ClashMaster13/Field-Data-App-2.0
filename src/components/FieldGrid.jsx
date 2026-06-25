@@ -141,7 +141,7 @@ export default function GridTab() {
         </select>
       </div>
 
-      <div style={{ overflowX: 'auto', paddingBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ overflowX: 'auto', paddingBottom: '20px', display: 'flex', justifyContent: 'flex-start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 'min-content', border: '1.5px solid #000', width: 'max-content', background: '#fff' }}>
           {gridData.grid.map((rowObj) => (
             <div key={`r-${rowObj.rowIndex}`} style={{ display: 'flex' }}>
