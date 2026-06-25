@@ -22,6 +22,11 @@ export const useStore = create(
       traits: [], // Array of objects: { name: 'Yield', type: 'decimal', soft_max: 20 }
       setTraits: (traits) => set({ traits: traits }),
       addTrait: (trait) => set((state) => ({ traits: [...state.traits, trait] })),
+      updateTrait: (index, updatedTrait) => set((state) => {
+        const newTraits = [...state.traits];
+        newTraits[index] = updatedTrait;
+        return { traits: newTraits };
+      }),
     }),
     {
       name: 'field-data-storage', // unique name for localStorage key

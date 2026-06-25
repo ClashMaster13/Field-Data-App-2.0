@@ -14,6 +14,7 @@ export default function SetupTab() {
   // Staging state
   const [stagedData, setStagedData] = useState(null);
   const [availableHeaders, setAvailableHeaders] = useState([]);
+  const [selectedTraitColumns, setSelectedTraitColumns] = useState([]);
   const [mapping, setMapping] = useState({
     plot: '',
     geno: '',
@@ -120,18 +121,74 @@ export default function SetupTab() {
     setTrialData(stagedData);
 
     const newName = workspaceName || 'New Workspace';
+    const newWorkspaceId = crypto.randomUUID();
     const newWorkspace = {
-      id: crypto.randomUUID(),
+      id: newWorkspaceId,
       name: newName,
       createdAt: new Date().getTime(),
       colMap: mapping
     };
 
+    // 1. Process imported traits
+    if (selectedTraitColumns.length > 0) {
+      const importedTraits = selectedTraitColumns.map(col => ({
+        name: col,
+        type: 'decimal', // Default
+        min: null,
+        max: null,
+        soft_max: null,
+        needsConfig: true
+      }));
+      useStore.getState().setTraits(importedTraits);
+
+      // 2. Import existing data into db.scores
+      const scoresToInsert = [];
+      const timestamp = Date.now();
+      
+      stagedData.forEach(row => {
+        const pIdStr = String(row[mapping.plot] || '').trim();
+        if (!pIdStr) return; // Skip rows without plot ID
+
+        selectedTraitColumns.forEach(traitName => {
+          const valStr = String(row[traitName] || '').trim();
+          if (valStr) {
+            scoresToInsert.push({
+              id: crypto.randomUUID(),
+              workspaceId: newWorkspaceId,
+              plotId: pIdStr,
+              trait: traitName,
+              value: valStr,
+              timestamp
+            });
+          }
+        });
+      });
+
+      if (scoresToInsert.length > 0) {
+        try {
+          await db.scores.bulkAdd(scoresToInsert);
+        } catch (err) {
+          console.error("Failed to import bulk scores", err);
+        }
+      }
+    } else {
+       useStore.getState().setTraits([]); // Clear traits if none selected
+    }
+
     await db.workspaces.add(newWorkspace);
     setActiveWorkspace(newWorkspace.id);
     
     setStagedData(null); // clear staging
+    setSelectedTraitColumns([]); // clear selection
     alert(`Successfully imported ${stagedData.length} plots into workspace: ${newName}`);
+  };
+
+  const toggleTraitColumn = (header) => {
+    if (selectedTraitColumns.includes(header)) {
+      setSelectedTraitColumns(prev => prev.filter(h => h !== header));
+    } else {
+      setSelectedTraitColumns(prev => [...prev, header]);
+    }
   };
 
   return (
@@ -251,6 +308,32 @@ export default function SetupTab() {
               </select>
             </div>
           </div>
+
+          <div style={{ marginBottom: '24px', padding: '16px', background: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd' }}>
+            <h4 style={{ margin: '0 0 12px 0', color: '#0369a1' }}>Import Existing Traits</h4>
+            <p className="text-muted" style={{ fontSize: '13px', marginBottom: '12px' }}>
+              Select any columns below that contain trait data you want to import. We will automatically create these traits and pre-fill the data for you!
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+              {availableHeaders.filter(h => !Object.values(mapping).includes(h)).length === 0 ? (
+                <span style={{ fontSize: '13px', color: '#64748b' }}>No unmapped columns available.</span>
+              ) : (
+                availableHeaders
+                  .filter(h => !Object.values(mapping).includes(h))
+                  .map(h => (
+                    <label key={h} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', background: 'white', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedTraitColumns.includes(h)} 
+                        onChange={() => toggleTraitColumn(h)} 
+                      />
+                      {h}
+                    </label>
+                  ))
+              )}
+            </div>
+          </div>
+
 
           <div style={{ display: 'flex', gap: '12px' }}>
             <button 
