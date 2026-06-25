@@ -45,18 +45,16 @@ export default function GridTab() {
     let parsedData = trialData.map(d => {
       const r = parseInt(d[rowKey], 10);
       const c = parseInt(d[colKey], 10);
-      const geno = String(d[genoKey] || 'Unknown');
-      
-      if (!isNaN(r)) {
-        if (r < minRow) minRow = r;
-      }
-      if (!isNaN(c)) {
-        if (c < minCol) minCol = c;
-      }
-      if (geno) genotypes.add(geno);
-      
-      return { ...d, _rawR: r, _rawC: c, _p: String(d[plotKey] || ''), _g: geno };
-    }).filter(d => !isNaN(d._rawR) && !isNaN(d._rawC));
+      const pStr = String(d[plotKey] || '').trim();
+      const gStr = String(d[genoKey] || 'Unknown').trim();
+      return { ...d, _rawR: r, _rawC: c, _p: pStr, _g: gStr };
+    }).filter(d => !isNaN(d._rawR) && !isNaN(d._rawC) && d._p !== '');
+
+    parsedData.forEach(d => {
+      if (d._rawR < minRow) minRow = d._rawR;
+      if (d._rawC < minCol) minCol = d._rawC;
+      if (d._g && d._g !== 'Unknown') genotypes.add(d._g);
+    });
 
     if (minRow === Infinity || minCol === Infinity) {
       return { error: 'Row and Column data must contain valid numbers.' };
