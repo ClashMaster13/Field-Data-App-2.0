@@ -9,7 +9,10 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'script',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg', 'favicon.svg'],
-      manifest: false
+      manifest: false,
+      workbox: {
+        maximumFileSizeToCacheInBytes: 5000000
+      }
     })
   ],
 })
