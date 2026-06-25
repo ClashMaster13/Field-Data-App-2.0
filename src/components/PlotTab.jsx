@@ -25,9 +25,13 @@ export default function PlotTab() {
     if (!activeWorkspaceId || trialData.length === 0 || !colMap.plot) return;
     
     const loadScores = async () => {
-      const pId = String(trialData[currentPlotIndex][colMap.plot]);
+      const pId = String(trialData[currentPlotIndex][colMap.plot] || '').trim();
       try {
-        const scores = await db.scores.where({ workspaceId: activeWorkspaceId, plotId: pId }).toArray();
+        const scores = await db.scores
+          .where('workspaceId')
+          .equals(activeWorkspaceId)
+          .filter(s => s.plotId === pId)
+          .toArray();
         const scoreMap = {};
         scores.forEach(s => {
           scoreMap[s.trait] = s.value;
@@ -124,12 +128,18 @@ export default function PlotTab() {
     
     // Save to Dexie DB
     if (!activeWorkspaceId) return;
-    const pId = String(currentPlot[colMap.plot]);
+    const pId = String(currentPlot[colMap.plot] || '').trim();
     
     try {
       const timestamp = Date.now();
       // Check if a score for this plot and trait already exists to update it, or create a new one
-      const existing = await db.scores.where({ workspaceId: activeWorkspaceId, plotId: pId, trait: traitName }).first();
+      const existingArray = await db.scores
+        .where('workspaceId')
+        .equals(activeWorkspaceId)
+        .filter(s => s.plotId === pId && s.trait === traitName)
+        .toArray();
+      
+      const existing = existingArray[0];
       
       if (existing) {
         await db.scores.update(existing.id, { value: val, timestamp });

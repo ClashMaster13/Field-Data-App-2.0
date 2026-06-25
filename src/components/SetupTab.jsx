@@ -310,7 +310,24 @@ export default function SetupTab() {
           </div>
 
           <div style={{ marginBottom: '24px', padding: '16px', background: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd' }}>
-            <h4 style={{ margin: '0 0 12px 0', color: '#0369a1' }}>Import Existing Traits</h4>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h4 style={{ margin: 0, color: '#0369a1' }}>Import Existing Traits</h4>
+              {availableHeaders.filter(h => !Object.values(mapping).includes(h)).length > 0 && (
+                <button 
+                  onClick={() => {
+                    const unmapped = availableHeaders.filter(h => !Object.values(mapping).includes(h));
+                    if (selectedTraitColumns.length === unmapped.length) {
+                      setSelectedTraitColumns([]);
+                    } else {
+                      setSelectedTraitColumns(unmapped);
+                    }
+                  }}
+                  style={{ fontSize: '12px', padding: '4px 8px', background: 'white', border: '1px solid #bae6fd', borderRadius: '4px', color: '#0369a1', cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                  {selectedTraitColumns.length === availableHeaders.filter(h => !Object.values(mapping).includes(h)).length ? 'Deselect All' : 'Select All'}
+                </button>
+              )}
+            </div>
             <p className="text-muted" style={{ fontSize: '13px', marginBottom: '12px' }}>
               Select any columns below that contain trait data you want to import. We will automatically create these traits and pre-fill the data for you!
             </p>

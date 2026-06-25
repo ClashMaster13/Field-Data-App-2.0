@@ -24,7 +24,11 @@ export default function TraitTab() {
     if (!activeWorkspaceId || !activeTrait) return;
     const loadScores = async () => {
       try {
-        const scores = await db.scores.where({ workspaceId: activeWorkspaceId, trait: activeTrait }).toArray();
+        const scores = await db.scores
+          .where('workspaceId')
+          .equals(activeWorkspaceId)
+          .filter(s => s.trait === activeTrait)
+          .toArray();
         const scoreMap = {};
         scores.forEach(s => {
           scoreMap[s.plotId] = s.value;
@@ -42,7 +46,14 @@ export default function TraitTab() {
     if (!activeWorkspaceId) return;
     try {
       const timestamp = Date.now();
-      const existing = await db.scores.where({ workspaceId: activeWorkspaceId, plotId: String(plotId), trait: activeTrait }).first();
+      const existingArray = await db.scores
+        .where('workspaceId')
+        .equals(activeWorkspaceId)
+        .filter(s => s.plotId === String(plotId).trim() && s.trait === activeTrait)
+        .toArray();
+        
+      const existing = existingArray[0];
+      
       if (existing) {
         await db.scores.update(existing.id, { value: val, timestamp });
       } else {
