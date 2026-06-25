@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/store';
 import { db } from '../db/db';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 export default function ProgressTab() {
   const { activeWorkspaceId, traits, trialData, colMap } = useStore();
@@ -15,7 +16,10 @@ export default function ProgressTab() {
 
     const loadProgress = async () => {
       try {
-        const allScores = await db.scores.where({ workspaceId: activeWorkspaceId }).toArray();
+        const allScores = await db.scores
+          .where('workspaceId')
+          .equals(activeWorkspaceId)
+          .toArray();
         
         // Get all valid plot IDs from the trial data
         const validPlots = trialData
@@ -29,23 +33,73 @@ export default function ProgressTab() {
         }
 
         const progress = traits.map(trait => {
-          // Find all unique plot IDs that have a non-empty score for this trait
-          const scoredPlotIds = new Set(
-            allScores
-              .filter(s => s.trait === trait.name && s.value !== '' && s.value !== null)
-              .map(s => s.plotId)
-          );
-
+          // Find all scores for this trait that are non-empty
+          const traitScores = allScores.filter(s => s.trait === trait.name && s.value !== '' && s.value !== null);
+          
+          const scoredPlotIds = new Set(traitScores.map(s => s.plotId));
           const scoredCount = scoredPlotIds.size;
           const missingPlots = validPlots.filter(pId => !scoredPlotIds.has(pId));
           const percentage = Math.round((scoredCount / totalPlots) * 100);
+
+          let distribution = null;
+
+          // Generate Distribution (Histogram) for numeric traits
+          if ((trait.type === 'integer' || trait.type === 'decimal') && traitScores.length > 0) {
+            const numericValues = traitScores
+              .map(s => parseFloat(s.value))
+              .filter(v => !isNaN(v));
+
+            if (numericValues.length > 0) {
+              const minVal = Math.min(...numericValues);
+              const maxVal = Math.max(...numericValues);
+              
+              const binCount = 10;
+              const bins = [];
+              
+              if (maxVal === minVal) {
+                // All values are exactly the same
+                bins.push({
+                  range: `${minVal}`,
+                  count: numericValues.length
+                });
+              } else {
+                const binWidth = (maxVal - minVal) / binCount;
+                for (let i = 0; i < binCount; i++) {
+                  const binStart = minVal + (i * binWidth);
+                  const binEnd = i === binCount - 1 ? maxVal : binStart + binWidth;
+                  
+                  // Format numbers to look clean (e.g., max 2 decimal places)
+                  const formatNum = (num) => Number.isInteger(num) ? num : num.toFixed(2);
+                  
+                  bins.push({
+                    binStart,
+                    binEnd,
+                    range: `${formatNum(binStart)} - ${formatNum(binEnd)}`,
+                    count: 0
+                  });
+                }
+
+                numericValues.forEach(val => {
+                  for (let i = 0; i < binCount; i++) {
+                    // Put in bin if it falls in range. Last bin is inclusive of maxVal.
+                    if (val >= bins[i].binStart && (i === binCount - 1 ? val <= bins[i].binEnd : val < bins[i].binEnd)) {
+                      bins[i].count++;
+                      break;
+                    }
+                  }
+                });
+              }
+              distribution = bins;
+            }
+          }
 
           return {
             traitName: trait.name,
             totalPlots,
             scoredCount,
             percentage,
-            missingPlots
+            missingPlots,
+            distribution
           };
         });
 
@@ -75,7 +129,7 @@ export default function ProgressTab() {
   return (
     <div className="tab-panel active-panel fade-in" style={{ paddingBottom: '100px' }}>
       <h2>Data Collection Progress</h2>
-      <p className="text-muted" style={{ marginBottom: '24px' }}>Track your scoring progress across all defined traits.</p>
+      <p className="text-muted" style={{ marginBottom: '24px' }}>Track your scoring progress and view data distribution across traits.</p>
 
       {progressData.map((data, idx) => {
         // Dynamic colors based on progress
@@ -104,23 +158,52 @@ export default function ProgressTab() {
               />
             </div>
             
-            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: data.missingPlots.length > 0 ? '12px' : '0' }}>
+            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: (data.missingPlots.length > 0 || data.distribution) ? '12px' : '0' }}>
               <strong>{data.scoredCount}</strong> out of <strong>{data.totalPlots}</strong> plots scored
             </div>
 
-            {data.missingPlots.length > 0 && (
-              <details style={{ background: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px' }}>
-                <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#0f172a' }}>
-                  View Missing Plots ({data.missingPlots.length})
-                </summary>
-                <div style={{ marginTop: '10px', color: '#475569', lineHeight: '1.5', maxHeight: '150px', overflowY: 'auto' }}>
-                  {data.missingPlots.join(', ')}
-                </div>
-              </details>
-            )}
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              {data.missingPlots.length > 0 && (
+                <details style={{ background: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', flex: 1, minWidth: '250px' }}>
+                  <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#0f172a' }}>
+                    View Missing Plots ({data.missingPlots.length})
+                  </summary>
+                  <div style={{ marginTop: '10px', color: '#475569', lineHeight: '1.5', maxHeight: '150px', overflowY: 'auto' }}>
+                    {data.missingPlots.join(', ')}
+                  </div>
+                </details>
+              )}
+
+              {data.distribution && (
+                <details style={{ background: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', flex: 1, minWidth: '300px' }}>
+                  <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#0369a1' }}>
+                    View Data Distribution (Histogram)
+                  </summary>
+                  <div style={{ marginTop: '16px', height: '200px', width: '100%' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={data.distribution} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <XAxis 
+                          dataKey="range" 
+                          tick={{ fontSize: 11, fill: '#64748b' }} 
+                          angle={-25} 
+                          textAnchor="end" 
+                        />
+                        <YAxis tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
+                        <Tooltip 
+                          cursor={{ fill: '#f1f5f9' }}
+                          contentStyle={{ borderRadius: '6px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        />
+                        <Bar dataKey="count" fill="#38bdf8" radius={[4, 4, 0, 0]} name="Plots" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </details>
+              )}
+            </div>
             
             {data.percentage === 100 && (
-              <div style={{ color: '#15803d', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ color: '#15803d', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '12px' }}>
                 ✅ All plots scored for this trait!
               </div>
             )}
