@@ -98,15 +98,28 @@ function App() {
         body: JSON.stringify(payload)
       });
 
-      const result = await response.json();
+      let responseText = "";
+      try {
+        responseText = await response.text();
+        const result = JSON.parse(responseText);
 
-      if (result.status === 'success') {
-        alert("✅ Data successfully synced to your Google Sheet!");
-      } else {
-        throw new Error(result.message);
+        if (!response.ok) {
+          throw new Error(`Server returned status ${response.status}: ${result.message || response.statusText}`);
+        }
+
+        if (result.status === 'success') {
+          alert("✅ Data successfully synced to your Google Sheet!");
+        } else {
+          throw new Error(result.message || 'Unknown error from backend');
+        }
+      } catch (parseError) {
+        if (parseError.name === 'SyntaxError') {
+          throw new Error(`Backend returned invalid data (Status: ${response.status}). \nRaw response: ${responseText.substring(0, 150)}...`);
+        }
+        throw parseError;
       }
     } catch (err) {
-      alert("❌ Sync failed. Error: " + err.message);
+      alert("❌ Sync failed.\n\nError: " + err.message + "\n\nPlease check your internet connection or verify the backend service.");
     }
   };
 
