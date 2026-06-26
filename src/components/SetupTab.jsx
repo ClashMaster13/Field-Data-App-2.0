@@ -368,6 +368,10 @@ export default function SetupTab() {
           </div>
         </div>
       )}
+
+      <div style={{ marginTop: 'auto', paddingTop: '40px', paddingBottom: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '13px', fontWeight: '500' }}>
+        Developed by Sudip Kundu
+      </div>
     </div>
   );
 }
