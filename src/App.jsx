@@ -149,15 +149,74 @@ function App() {
                 <Trash2 size={20} />
               </button>
               <button className="icon-btn" title="Export Data to CSV" onClick={async () => {
-                const { trialData, colMap } = useStore.getState();
-                const scores = await db.scores.where({ workspaceId: activeWorkspaceId }).toArray();
+                const { trialData, colMap, traits } = useStore.getState();
+                const ws = workspaces.find(w => w.id === activeWorkspaceId);
+                const wsName = ws?.name || 'Workspace';
                 
+                const scores = await db.scores.where({ workspaceId: activeWorkspaceId }).toArray();
+                const photos = await db.photos.where({ workspaceId: activeWorkspaceId }).toArray();
+                
+                // Calculate max observations for dynamic raw columns
+                const maxObs = {};
+                traits.forEach(t => maxObs[t.name] = 1);
+                
+                const plotScoresMap = {};
+                scores.forEach(s => {
+                  if (!plotScoresMap[s.plotId]) plotScoresMap[s.plotId] = {};
+                  if (typeof s.value === 'string' && s.value.includes(';')) {
+                    const count = s.value.split(';').length;
+                    if (count > maxObs[s.trait]) maxObs[s.trait] = count;
+                  }
+                  plotScoresMap[s.plotId][s.trait] = s.value;
+                });
+                
+                const plotPhotosMap = {};
+                photos.forEach(p => {
+                  if (!plotPhotosMap[p.plotId]) plotPhotosMap[p.plotId] = 0;
+                  plotPhotosMap[p.plotId]++;
+                });
+
                 const exportedData = trialData.map(plot => {
-                  const plotScores = scores.filter(s => s.plotId === String(plot[colMap.plot]));
-                  const merged = { ...plot };
-                  plotScores.forEach(s => {
-                    merged[s.trait] = s.value;
+                  const pId = String(plot[colMap.plot]);
+                  const merged = { Workspace: wsName, ...plot };
+                  const pScores = plotScoresMap[pId] || {};
+                  
+                  // 1. Mean Columns
+                  traits.forEach(t => {
+                    const rawValue = pScores[t.name] || '';
+                    if (typeof rawValue === 'string' && rawValue.includes(';')) {
+                      const parts = rawValue.split(';');
+                      let sum = 0;
+                      let validCount = 0;
+                      parts.forEach(pStr => {
+                        const parsedNum = parseFloat(pStr.trim());
+                        if (!isNaN(parsedNum)) {
+                          sum += parsedNum;
+                          validCount++;
+                        }
+                      });
+                      merged[`${t.name} (Mean)`] = validCount > 0 ? (sum / validCount) : "";
+                    } else {
+                      merged[`${t.name} (Mean)`] = rawValue;
+                    }
                   });
+                  
+                  // 2. Photos & Timestamp
+                  const photoCount = plotPhotosMap[pId] || 0;
+                  merged['Photo_Link'] = photoCount > 0 ? `${photoCount} photos in cloud` : "No Photo";
+                  merged['Sync_Timestamp'] = new Date().toISOString();
+                  
+                  // 3. Raw Columns (if sub-samples exist)
+                  traits.forEach(t => {
+                    if (maxObs[t.name] > 1) {
+                      const rawValue = pScores[t.name] || '';
+                      const parts = typeof rawValue === 'string' ? rawValue.split(';') : [rawValue];
+                      for (let k = 1; k <= maxObs[t.name]; k++) {
+                        merged[`${t.name}_Raw_${k}`] = parts[k-1] ? parts[k-1].trim() : "";
+                      }
+                    }
+                  });
+                  
                   return merged;
                 });
 
@@ -167,7 +226,7 @@ function App() {
                   const url = URL.createObjectURL(blob);
                   const link = document.createElement('a');
                   link.href = url;
-                  link.setAttribute('download', `FieldData_Export_${new Date().toISOString().split('T')[0]}.csv`);
+                  link.setAttribute('download', `${wsName}_${new Date().toISOString().split('T')[0]}.csv`);
                   document.body.appendChild(link);
                   link.click();
                   document.body.removeChild(link);
