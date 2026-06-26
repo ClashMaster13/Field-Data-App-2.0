@@ -136,11 +136,11 @@ function App() {
                 <Trash2 size={20} />
               </button>
               <button className="icon-btn" title="Export Data to CSV" onClick={async () => {
-                const { trialData } = useStore.getState();
+                const { trialData, colMap } = useStore.getState();
                 const scores = await db.scores.where({ workspaceId: activeWorkspaceId }).toArray();
                 
                 const exportedData = trialData.map(plot => {
-                  const plotScores = scores.filter(s => s.plotId === String(plot[ws.colMap.plot]));
+                  const plotScores = scores.filter(s => s.plotId === String(plot[colMap.plot]));
                   const merged = { ...plot };
                   plotScores.forEach(s => {
                     merged[s.trait] = s.value;
